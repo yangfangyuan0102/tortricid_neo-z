@@ -90,58 +90,26 @@ Helixer.py --lineage invertebrate --model-filepath $model --subsequence-length 3
 --compression lzf --batch-size 6 --fasta-path ${genome} --species $species --gff-output-path ${work_dir}/helixer.gff3
 
 ####################################################
+####################miniprot
+miniprot -t1 --gff-only --gff $genome Plutella_xylostella.faa > miniprot.gff3
+miniprot_GFF_2_EVM_GFF3.py miniprot.gff3 > miniport_evm.gff3
+
+
+####################################################
 ################Evidencemodeler
-conda activae evidence1.1.1
+conda activae evidence
 species=$1
-EVM_HOME=/mnt/data/miniconda3/envs/evi/opt/evidencemodeler-1.1.1
 cpu=32
 work_dir=/mnt/dataset/moth/species/${species}
-genome=${work_dir}/2genome/${species}.fasta
+genome=${species}.fasta
 
-mkdir -p ${work_dir}/3anno/evm; cd ${work_dir}/3anno/evm
-######predict
-cat /path/to/pasaResult/*genome.gff3 | grep transdecoder   > ${species}.pred.gff3
-cat /path/to/helixerResult/*.gff3    | grep Helixer 	  >> ${species}.pred.gff3
-#######trans
-cat /path/to/pasaResult/*pasa_assemblies.gff3   	   > ${species}.est.gff3 #pasa,assembler-${species}.pasa.sqlite
-#########repeat
-cp /path/to/repeatMaskerResult/*.gff  ./${species}.repeat.gff3
+$EVM_HOME/EVidenceModeler --sample_id ly \
+--genome $genome --gene_predictions gene_predictions.gff3 \
+--protein_alignments miniport_evm.gff3 \
+--transcript_alignmentspasa.sqlite.pasa_assemblies.gff3 \
+--segmentSize 600000 --overlapSize 30000 --CPU 32 \
+--repeats repeatmasker.gff --weight weight
 
-#weight
-echo -e \
-"TRANSCRIPT\t	assembler-${species}.pasa.sqlite\t	5
-ABINITIO_PREDICTION\t	Helixer\t			10
-OTHER_PREDICTION\t	transdecoder\t			10" > evm_weight
-
-#Partitioning the Inputs
-cd ${work_dir}/3anno/evm
-mkdir -p part
-cd ./part
-${EVM_HOME}/EvmUtils/partition_EVM_inputs.pl --genome ${genome} \
-     --gene_predictions             ../${species}.pred.gff3 \
-     --transcript_alignments        ../${species}.est.gff3 \
-     --protein_alignments           ../${species}.prot.gff3 \
-     --repeats                      ../${species}.repeat.gff3 \
-     --segmentSize 1000000 --overlapSize 10000 \
-     --partition_listing            ../partitions_list
-cd ../
-#Generating the EVM Command Set
-${EVM_HOME}/EvmUtils/write_EVM_commands.pl --genome                       ${genome} \
-      --weights                      ${work_dir}/3anno/evm/evm_weight \
-      --gene_predictions             ${species}.pred.gff3 \
-      --transcript_alignments        ${species}.est.gff3 \
-      --protein_alignments           ${species}.prot.gff3 \
-      --repeats                      ${species}.repeat.gff3 \
-      --output_file_name             ${species}.evm.out \
-      --partitions                   partitions_list > commands_list
-#run in parallel, need parallel package
-cat commands_list | parallel --gnu --progress -j $cpu --joblog ./evm_run.log
-#Combining the Partitions
-${EVM_HOME}/EvmUtils/recombine_EVM_partial_outputs.pl --partitions partitions_list --output_file_name ${species}.evm.out
-#Convert to GFF3 Format
-${EVM_HOME}/EvmUtils/convert_EVM_outputs_to_GFF3.pl --partitions partitions_list --output_file_name ${species}.evm.out --genome ${genome}
-#All to one
-find . -regex ".*evm.out.gff3" -exec cat {} \; > ${species}.evm.all.gff3
 
 ####################################################
 ################BUSCO
