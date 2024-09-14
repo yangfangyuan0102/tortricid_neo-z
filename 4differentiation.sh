@@ -7,21 +7,6 @@ awk -F',' '{print $1"\t"$2"\t"$3"\t"$9}' output.100k.csv | tail -n +2 | grep -v 
 awk -F',' '{print $1"\t"$2"\t"$3"\t"$6}' output.100k.csv | tail -n +2 | grep -v nan > output.100k.pi_gm.bedgraph
 awk -F',' '{print $1"\t"$2"\t"$3"\t"$7}' output.100k.csv | tail -n +2 | grep -v nan > output.100k.pi_gd.bedgraph
 
-##da
-da=dxy-(pi_gm+pi_gd)/2
-
-##resudial of fst against recombination rate
-#R script
-data <- read.table("/mnt/dataset/moth/species/gmgdcp/fstdxy/output.100k.fst.recombinationRate.bedgraph",header = T,sep = "\t")
-
-fst_reb <- lm(fst ~ reb, data = data)
-summary(fst_reb)
-fst_reb$residuals
-data$fst
-data$residu <- fst_reb$residuals
-
-write.table(data,"output.100k.da.fst.bedgraph",sep = "\t",quote = F,row.names = F)
-
 ######find divergence peak regions
 raw_fst <- read.table("output.100k.fst.bedgraph",header = F)
 raw_da <- read.table("output.100k.da.bedgraph",header = F)
